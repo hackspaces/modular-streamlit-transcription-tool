@@ -321,7 +321,9 @@ def file_management(page, name, key):
         with st.container():
             user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'transcripts')
             print(user_processed_folder)
+            user_uploaded_folder = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}")
             files = get_file_details(list_files(user_processed_folder))
+            uploaded_files = get_file_details(list_files(user_uploaded_folder))
             col1, col2, col3 = st.columns([3, 4, 3])
             with col1:
                 st.header("File Management")
@@ -351,6 +353,33 @@ def file_management(page, name, key):
 
             # Alternate row color for better readability
             bg_color = "#f0f2f6"
+            
+            for file in uploaded_files:
+                if file['name']:
+                    file_name = file['name']
+                    file_title = os.path.splitext(file_name)[0]  # Extract title from filename\
+                    file_title = clean_title(file_title)
+                    col1, col2, col3, col4 = st.columns([3, 3, 1, 1])
+                    # Apply alternate row color
+                    with col1:
+                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_name}</div>', unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_title}</div>', unsafe_allow_html=True)
+
+                        with col3:
+                            # Download button with emoji and tooltip
+                            with open(file['path'], 'rb') as f:
+                                st.download_button("⬇️", f.read(), file_name=file_name, mime="text/plain", help="Download File", key=f"download_{file_name}")
+
+                        with col4:
+                            # Delete button with emoji, tooltip, and confirmation
+                            if st.button("❌", help="Delete File", key=f"delete_{file_name}"):
+                                delete_file(file['path'])
+                                delete_hash_from_csv()
+                                st.rerun()  # Refresh the list to reflect the deletion
+                        
+                        # Toggle the background color for the next row
+                        bg_color = "#e0e2e6" if bg_color == "#f0f2f6" else "#f0f2f6"
 
             # Render the file names along with the buttons
             for file in files:
