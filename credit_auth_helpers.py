@@ -3,7 +3,8 @@
 # Example backend storage for credits (in-memory, for demonstration purposes)
 credits_db = {
     'john_doeasu': {'key': 'johns_keyasu', 'credits': 100}, 
-    'yash_asu': {'key': 'yash_keyasu', 'credits': 200}
+    'yash_asu': {'key': 'yash_keyasu', 'credits': 200},
+    'ad_asu': {'key': 'ad_keyasu', 'credits': 200},
 }
 
 def check_and_deduct_credits(name, key, duration):

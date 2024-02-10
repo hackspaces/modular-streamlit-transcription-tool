@@ -31,14 +31,14 @@ ensure_directory_exists(download_folder)
 def clean_vtt_content(vtt_content):
     # Split the content into lines
     lines = vtt_content.splitlines()
-    # Pattern to detect timestamps and line numbers
+    # Patterns to detect timestamps and potentially unwanted lines
     timestamp_pattern = re.compile(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}')
-    line_number_pattern = re.compile(r'^\d+$')
+    non_textual_pattern = re.compile(r'^\d+$|^WEBVTT|^NOTE|^STYLE|^X-|^\s*$')
     
     cleaned_lines = []
     for line in lines:
-        # Skip timestamps and line numbers
-        if timestamp_pattern.match(line) or line_number_pattern.match(line):
+        # Skip lines matching the patterns for timestamps, "WEBVTT", empty lines, and other non-textual content
+        if timestamp_pattern.match(line) or non_textual_pattern.match(line):
             continue
         # Add non-empty lines to the cleaned_lines list
         if line.strip():
@@ -49,16 +49,13 @@ def clean_vtt_content(vtt_content):
 
 # Function to extract text from .vtt file and save as .txt
 def extract_text_from_vtt(vtt_file_path, output_text_file_path):
-    # Regular expression to match WebVTT metadata and timecodes
-    vtt_timecode_pattern = re.compile(r'^\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}')
-    
-    with open(vtt_file_path, 'r', encoding='utf-8') as vtt_file, \
-         open(output_text_file_path, 'w', encoding='utf-8') as output_file:
-        for line in vtt_file:
-            if vtt_timecode_pattern.match(line) or "WEBVTT" in line or "-->" in line:
-                continue  # Skip lines with timecodes or metadata
-            else:
-                output_file.write(line.strip() + '\n')  # Write the text content
+    with open(vtt_file_path, 'r', encoding='utf-8') as vtt_file:
+        vtt_content = vtt_file.read()  # Read the entire content at once
+
+    cleaned_content = clean_vtt_content(vtt_content)  # Clean the content using the previously defined function
+
+    with open(output_text_file_path, 'w', encoding='utf-8') as output_file:
+        output_file.write(cleaned_content)  # Write the cleaned content to the output file
 
 
 #If the file to process is just a .txt file and needs to be converted to .html
@@ -81,6 +78,7 @@ def format_text_file(file_path, format_with_gpt, openai_api_key, css_file_path, 
 
     # Process the file
     if format_with_gpt:
+        st.toast("Formatting with GPT-4", icon="⏳")
         formatted_text = reformat_transcript_with_gpt4(read_text_file(file_path), openai_api_key)
         with open(formatted_file_path, "w") as text_file:
             text_file.write(formatted_text)
@@ -222,7 +220,7 @@ def process_youtube_video(youtube_url, name, key, css_file_path, openai_api_key)
         
         # Move or copy the file to the user-specific processed folder
         shutil.move(transcription_filename, processed_file_path)
-
+        
         logging.info(f"Processed file saved: {processed_file_path}")
         # Convert the transcript to HTML and save in the same folder
         title = os.path.splitext(filename)[0]
@@ -311,17 +309,19 @@ def transcription_functionality(name, key, credit_on, openai_api_key):
                     elif extension == ".vtt" and file_path is not None:
                         st.write(f"Processing vtt file: {file_path}")
                         process_text_file(file_path, format_with_gpt, css_file_path=css_file_path, name=name, key=key, openai_api_key=openai_api_key)
-                        st.write(f"Finished processing text file: {file_path}", state="complete")
+                        st.write(f"Finished processing text file: {file_path}")
                     elif extension in audio_video_extensions and file_path is not None:
                         st.write(f"Processing audio/video file: {file_path}")
                         process_audio_video_files(file_path, name=name, key=key, css_file_path=css_file_path, openai_api_key=openai_api_key)
-                        st.write(f"Finished processing audio/video file: {file_path}", state="complete")
+                        st.write(f"Finished processing audio/video file: {file_path}")
                         
-def file_management(page):
+def file_management(page, name, key):
     # File Management Section with search and sort, without using a table
     if page == "Current Functionality":
         with st.container():
-            files = get_file_details(list_files(PROCESSED_DIRECTORY))
+            user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'html')
+            print(user_processed_folder)
+            files = get_file_details(list_files(user_processed_folder))
             col1, col2, col3 = st.columns([3, 4, 3])
             with col1:
                 st.header("File Management")
@@ -354,34 +354,36 @@ def file_management(page):
 
             # Render the file names along with the buttons
             for file in files:
-                file_name = file['name']
-                file_title = os.path.splitext(file_name)[0]  # Extract title from filename\
-                file_title = clean_title(file_title)
-                col1, col2, col3, col4 = st.columns([3, 3, 1, 1])
-                # Apply alternate row color
-                with col1:
-                    st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_name}</div>', unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_title}</div>', unsafe_allow_html=True)
+                if file['name']:
+                    file_name = file['name']
+                    file_title = os.path.splitext(file_name)[0]  # Extract title from filename\
+                    file_title = clean_title(file_title)
+                    col1, col2, col3, col4 = st.columns([3, 3, 1, 1])
+                    # Apply alternate row color
+                    with col1:
+                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_name}</div>', unsafe_allow_html=True)
+                    with col2:
+                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_title}</div>', unsafe_allow_html=True)
 
-                    with col3:
-                        # Download button with emoji and tooltip
-                        with open(file['path'], 'rb') as f:
-                            st.download_button("⬇️", f.read(), file_name=file_name, mime="text/plain", help="Download File", key=f"download_{file_name}")
+                        with col3:
+                            # Download button with emoji and tooltip
+                            with open(file['path'], 'rb') as f:
+                                st.download_button("⬇️", f.read(), file_name=file_name, mime="text/plain", help="Download File", key=f"download_{file_name}")
 
-                    with col4:
-                        # Delete button with emoji, tooltip, and confirmation
-                        if st.button("❌", help="Delete File", key=f"delete_{file_name}"):
-                            delete_file(file['path'])
-                            delete_hash_from_csv()
-                            st.rerun()  # Refresh the list to reflect the deletion
-                    
-                    # Toggle the background color for the next row
-                    bg_color = "#e0e2e6" if bg_color == "#f0f2f6" else "#f0f2f6"
+                        with col4:
+                            # Delete button with emoji, tooltip, and confirmation
+                            if st.button("❌", help="Delete File", key=f"delete_{file_name}"):
+                                delete_file(file['path'])
+                                delete_hash_from_csv()
+                                st.rerun()  # Refresh the list to reflect the deletion
+                        
+                        # Toggle the background color for the next row
+                        bg_color = "#e0e2e6" if bg_color == "#f0f2f6" else "#f0f2f6"
                     
     elif page == "File Preview":
         with st.container():
-            files = get_file_details(list_files(PROCESSED_DIRECTORY))
+            user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'html')
+            files = get_file_details(list_files(user_processed_folder))
             col1, col2 = st.columns([3, 4])
             with col1:
                 # Enhanced real-time search functionality

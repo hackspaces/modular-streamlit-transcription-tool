@@ -82,6 +82,7 @@ def reformat_transcript_with_gpt4(raw_transcription, openai_api_key):
         "Authorization": f"Bearer {openai_api_key}"
     }
 
+
     data = {
         "model": "gpt-4-1106-preview",  # Update the model to "gpt-4" when available
         "messages": [
@@ -94,13 +95,14 @@ def reformat_transcript_with_gpt4(raw_transcription, openai_api_key):
     
     input_tokens = num_tokens_from_messages(data["messages"], model="gpt-4-1106-preview")
     logging.info(f"Estimated input tokens: {input_tokens}")
-
+    print(headers)
     try:
         response = requests.post(url, headers=headers, data=json.dumps(data))
         response.raise_for_status()
         response_data = response.json()
         if 'choices' in response_data: 
             output_content = response_data['choices'][0]['message']['content']
+            print(output_content)
             output_tokens = num_tokens_from_messages([{"role": "assistant", "content": output_content}], model="gpt-4-1106-preview")
             logging.info(f"Estimated output tokens: {output_tokens}")
             return output_content

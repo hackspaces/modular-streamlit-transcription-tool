@@ -26,26 +26,33 @@ if 'name' not in st.session_state:
     st.session_state.name = ""
 if 'key' not in st.session_state:
     st.session_state.key = ""
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
     
 # Page Navigation
 with st.sidebar:
     with st.expander("Step 1: Name and Key", expanded=True):
-        name = st.text_input("Enter your name")
+        name = st.text_input("Enter your name", value=st.session_state.get('name', ''))
         st.session_state.name = name
-        key = st.text_input("Enter your key")
+        key = st.text_input("Enter your key", value=st.session_state.get('key', ''), type="password")
         st.session_state.key = key
         credit_on = st.checkbox("Use credits", value=False, help="Use credits to process files.")
         
         if st.session_state.name in credits_db and credits_db[st.session_state.name]['key'] == st.session_state.key:
             st.success("User authenticated!")
+            st.session_state['authenticated'] = True  # Mark user as authenticated
             st.write(f"Available credits: {credits_db[st.session_state.name]['credits']}")
         elif st.session_state.name or st.session_state.key:  # Only show an error if fields aren't empty
             st.error("Invalid name or key.")    
     st.title("Navigation")
     page = st.sidebar.radio("Select Page", ["Current Functionality", "File Preview"])
-            
-if page == "Current Functionality":
-    transcription_functionality(name=st.session_state.name, key=st.session_state.key, credit_on=credit_on, openai_api_key=openai_api_key)
-    file_management(page)
-elif page == "File Preview":
-    file_management(page)
+
+st.session_state['authenticated'] = True  # Mark user as authenticated
+if st.session_state['authenticated']:
+    if page == "Current Functionality":
+        transcription_functionality(name=name, key=key, credit_on=credit_on, openai_api_key=openai_api_key)
+        file_management(page, name=st.session_state.get('name'), key=st.session_state.get('key'))
+    elif page == "File Preview":
+        file_management(page, name=st.session_state.get('name'), key=st.session_state.get('key'))
+else:
+    st.warning("Please enter your name and key to proceed.")
