@@ -1,11 +1,56 @@
-from file_helpers import get_file_metadata
-from moviepy.editor import VideoFileClip
-from pydub import AudioSegment
 import logging
 import os
+from moviepy.editor import VideoFileClip, AudioFileClip
+from pydub import AudioSegment
 from pytube import YouTube
+
 # Set up basic configuration for logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def get_file_duration(file_path):
+    """
+    Gets the duration of the given audio or video file.
+
+    :param file_path: Path to the audio or video file.
+    :return: Duration of the file in seconds.
+    """
+    try:
+        # Check the file extension to determine if it's audio or video
+        if any(file_path.endswith(ext) for ext in ['.mp3', '.wav', '.ogg', '.flac']):
+            # Handle audio file
+            audio_clip = AudioFileClip(file_path)
+            duration = audio_clip.duration
+            audio_clip.close()
+        elif any(file_path.endswith(ext) for ext in ['.mp4', '.mov', '.avi', '.mkv']):
+            # Handle video file
+            video_clip = VideoFileClip(file_path)
+            duration = video_clip.duration
+            video_clip.close()
+        else:
+            raise ValueError("Unsupported file format")
+
+        return duration
+    except Exception as e:
+        # Handle errors: log them or re-raise them
+        logging.error(f"Error getting duration of file {file_path}: {e}")
+        raise
+    
+#Get file metadata to determine size and duration
+def get_file_metadata(file_path):
+    logging.info(f"Getting metadata for file: {file_path}")
+    file_size = os.path.getsize(file_path)
+    duration = None
+    if file_path.endswith('.mp3') or file_path.endswith('.wav'):
+        audio = AudioFileClip(file_path)
+        duration = audio.duration
+    elif file_path.endswith('.mp4'):
+        video = VideoFileClip(file_path)
+        duration = video.duration
+
+    return {
+        'size': file_size,  # size in bytes
+        'duration': duration  # duration in seconds
+    }
 
 def download_youtube_video(url, output_path='uploads/youtube_videos'):
     try:
