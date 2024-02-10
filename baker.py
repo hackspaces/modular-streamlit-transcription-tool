@@ -319,7 +319,7 @@ def file_management(page, name, key):
     # File Management Section with search and sort, without using a table
     if page == "Current Functionality":
         with st.container():
-            user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'html')
+            user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'transcripts')
             print(user_processed_folder)
             files = get_file_details(list_files(user_processed_folder))
             col1, col2, col3 = st.columns([3, 4, 3])
