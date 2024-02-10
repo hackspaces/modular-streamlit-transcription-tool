@@ -1,5 +1,3 @@
-
-
 """ # Upload to S3 bucket 
 def upload_to_s3(filename, bucketname):
     try:

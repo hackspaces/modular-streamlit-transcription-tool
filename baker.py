@@ -13,8 +13,7 @@ from api_helpers import call_whisper_api, reformat_transcript_with_gpt4
 from werkzeug.utils import secure_filename
 from html_creator_helper import convert_txt_to_html, clean_title
 import streamlit.components.v1 as components 
-import pandas as pd
-
+import re
 
 # Set up basic configuration for logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -29,6 +28,39 @@ ensure_directory_exists(PROCESSED_DIRECTORY)
 ensure_file_exists("file_hashes.csv")
 ensure_directory_exists(download_folder)
 
+def clean_vtt_content(vtt_content):
+    # Split the content into lines
+    lines = vtt_content.splitlines()
+    # Pattern to detect timestamps and line numbers
+    timestamp_pattern = re.compile(r'\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}')
+    line_number_pattern = re.compile(r'^\d+$')
+    
+    cleaned_lines = []
+    for line in lines:
+        # Skip timestamps and line numbers
+        if timestamp_pattern.match(line) or line_number_pattern.match(line):
+            continue
+        # Add non-empty lines to the cleaned_lines list
+        if line.strip():
+            cleaned_lines.append(line.strip())
+
+    return '\n'.join(cleaned_lines)
+
+
+# Function to extract text from .vtt file and save as .txt
+def extract_text_from_vtt(vtt_file_path, output_text_file_path):
+    # Regular expression to match WebVTT metadata and timecodes
+    vtt_timecode_pattern = re.compile(r'^\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}')
+    
+    with open(vtt_file_path, 'r', encoding='utf-8') as vtt_file, \
+         open(output_text_file_path, 'w', encoding='utf-8') as output_file:
+        for line in vtt_file:
+            if vtt_timecode_pattern.match(line) or "WEBVTT" in line or "-->" in line:
+                continue  # Skip lines with timecodes or metadata
+            else:
+                output_file.write(line.strip() + '\n')  # Write the text content
+
+
 #If the file to process is just a .txt file and needs to be converted to .html
 def format_text_file(file_path, format_with_gpt, openai_api_key, css_file_path, name, key):
     # Construct the path for the processed folder based on name and key
@@ -39,6 +71,13 @@ def format_text_file(file_path, format_with_gpt, openai_api_key, css_file_path, 
     base_file_name = os.path.splitext(os.path.basename(file_path))[0]
     formatted_file_path = os.path.join(user_processed_folder, base_file_name + "_formatted.txt")
     html_file_path = os.path.join(user_processed_folder, base_file_name + ".html")
+    
+    # Check if the file is a .vtt file
+    if file_path.endswith('.vtt'):
+        # Extract text from .vtt to a temporary .txt file
+        temp_text_file_path = os.path.join(user_processed_folder, base_file_name + ".txt")
+        extract_text_from_vtt(file_path, temp_text_file_path)
+        file_path = temp_text_file_path  # Update file_path to the extracted text file
 
     # Process the file
     if format_with_gpt:
@@ -200,6 +239,8 @@ def process_youtube_video(youtube_url, name, key, css_file_path, openai_api_key)
 
 
 def transcription_functionality(name, key, credit_on, openai_api_key):
+    css_file_path = None
+    selected_css_option = None
     # File Upload Section with improved spacing and layout
     with st.container():
             with st.expander("Step 2: File Upload", expanded=True):
@@ -207,7 +248,7 @@ def transcription_functionality(name, key, credit_on, openai_api_key):
                 
                 with col1:
                     st.write("Upload text, audio, or video files to process.")
-                    uploaded_files = st.file_uploader("Drag and drop files here", accept_multiple_files=True, type=['txt', 'mp3', 'mp4',], help="Limit 200MB per file")
+                    uploaded_files = st.file_uploader("Drag and drop files here", accept_multiple_files=True, type=['txt', 'mp3', 'mp4', 'vtt'], help="Limit 200MB per file")
                     format_with_gpt = st.checkbox("Format with GPT-4", value=False, help="Format the transcript with GPT-4 to improve readability.")
                 with col2:
                     st.write("Process a youtube video.")
@@ -222,21 +263,25 @@ def transcription_functionality(name, key, credit_on, openai_api_key):
             with st.expander("Upload CSS File", expanded=False):
                 st.write("Select a CSS file to apply to the transcript.")
                 uploaded_css_file = st.file_uploader("Drag and drop CSS file here", accept_multiple_files=False, type=['css'], help="Limit 200MB per file")
-                    # Handle CSS file upload and path retrieval
-                if uploaded_css_file:
-                    css_file_path = handle_file_upload(uploaded_css_file, name, key)
-                    print(css_file_path)
-                    st.success(f"CSS file uploaded: {css_file_path}")
-                else:
-                    css_file_path = None
-                    css_options = ["None", "ASU", "Udacity", "Udemy", "Coursera", "edX", "LinkedIn Learning", "Other"]   
-                    css_files = list_css_files(name, key)
-                    css_options = ["None"] + css_files
-                    selected_css_option = st.selectbox("Select a CSS file", css_options, index=0, help="Select a CSS file to apply to the transcript.")  
-     
-                   
-                
+                css_files = list_css_files(name, key)
+                css_options = ["None"] + css_files
+                selected_css_option = st.selectbox("Select a CSS file", css_options, index=0, help="Select a CSS file to apply to the transcript.")  
+    
     if st.button("Process Files", key="process_files"):
+        # Handle CSS file upload and path retrieval
+        if uploaded_css_file:
+            css_file_path = handle_file_upload(uploaded_css_file, name, key)
+            print(css_file_path)
+            st.toast(f"CSS file uploaded: {css_file_path}")
+        elif selected_css_option != "None":
+            css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", selected_css_option)
+            print(css_file_path)
+        elif css_file_path is not None and os.path.exists(css_file_path):
+            css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", "default.css")
+            print(css_file_path)
+        else:
+            css_file_path = "https://assets.ea.asu.edu/ulc/css/stylesheet.css"
+            
         with st.status("Processing files..."):
             if not uploaded_files:
                 st.error("No files selected.")
@@ -256,20 +301,15 @@ def transcription_functionality(name, key, credit_on, openai_api_key):
                     st.write(f"Uploading file: {uploaded_file.name}")
                     file_path = handle_file_upload(uploaded_file, name=name, key=key)
                     print(file_path)
-                    if selected_css_option != "None":
-                        css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", selected_css_option)
-                        print(css_file_path)
-                    elif css_file_path is not None and os.path.exists(css_file_path):
-                        css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", "default.css")
-                        print(css_file_path)
-                    else:
-                        css_file_path = "https://assets.ea.asu.edu/ulc/css/stylesheet.css"
                     
                     audio_video_extensions = ['.mp3', '.mp4', '.wav', '.avi', '.mov', '.flac']
                     extension = os.path.splitext(file_path)[1]
                 
                     if extension == ".txt" and file_path is not None:
                         st.write(f"Processing text file: {file_path}")
+                        process_text_file(file_path, format_with_gpt, css_file_path=css_file_path, name=name, key=key, openai_api_key=openai_api_key)
+                    elif extension == ".vtt" and file_path is not None:
+                        st.write(f"Processing vtt file: {file_path}")
                         process_text_file(file_path, format_with_gpt, css_file_path=css_file_path, name=name, key=key, openai_api_key=openai_api_key)
                         st.write(f"Finished processing text file: {file_path}", state="complete")
                     elif extension in audio_video_extensions and file_path is not None:
