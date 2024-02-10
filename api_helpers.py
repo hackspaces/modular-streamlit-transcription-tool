@@ -79,7 +79,7 @@ def reformat_transcript_with_gpt4(raw_transcription, openai_api_key):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {openai_api_key}"
+        "Authorization": f"Bearer {openai_api_key}",
     }
 
 
@@ -90,21 +90,14 @@ def reformat_transcript_with_gpt4(raw_transcription, openai_api_key):
             {"role": "system","content": "\"You are the AI text-editor called Jarvy\"\nTASK:\nYour task is to reformat the transcript into a more readable format by breaking it into paragraphs to improve readability. \nINSTRUCTIONS: \n1.You are provided with a raw transcript from a course video. \n2 . Ensure all original content remains intact and do not add any headers or titles. The aim is to enhance the flow and readability while maintaining the integrity of the original content. \n3. Reformat the transcript to make it more reader-friendly without altering the content or adding titles.\n\nDO:\n1. Follow the instructions\n\n"},
             {"role": "user","content": "Here is the transcript: \n\n{raw_transcription}".format(raw_transcription=raw_transcription)},
             {"role": "user","content": "Please do not add any headings, bullet points or any other styling. "},
-        ]
+        ],
     }
-    
-    input_tokens = num_tokens_from_messages(data["messages"], model="gpt-4-1106-preview")
-    logging.info(f"Estimated input tokens: {input_tokens}")
-    print(headers)
     try:
         response = requests.post(url, headers=headers, data=json.dumps(data))
         response.raise_for_status()
         response_data = response.json()
         if 'choices' in response_data: 
             output_content = response_data['choices'][0]['message']['content']
-            print(output_content)
-            output_tokens = num_tokens_from_messages([{"role": "assistant", "content": output_content}], model="gpt-4-1106-preview")
-            logging.info(f"Estimated output tokens: {output_tokens}")
             return output_content
         else:
             return None

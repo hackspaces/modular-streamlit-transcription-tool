@@ -21,7 +21,7 @@ def clean_html_title(title):
 def clean_title(file_name):
     """Generate a clean title by removing special characters except spaces and underscores."""
     # Remove the file extension and any leading directory paths
-    title = os.path.splitext(os.path.basename(file_name))[0]
+    title = os.path.basename(file_name)
     # Replace underscores with spaces for readability
     title = title.replace("_", " ").title()
     # Remove any remaining special characters except spaces

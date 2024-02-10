@@ -212,7 +212,7 @@ def process_youtube_video(youtube_url, name, key, css_file_path, openai_api_key)
     
     if transcription_filename:
         # Save the formatted transcription in the user-specific processed folder
-        user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'transcripts')
+        user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'html')
         ensure_directory_exists(user_processed_folder)
 
         # Construct the full path for the processed file
@@ -355,59 +355,62 @@ def file_management(page, name, key):
             bg_color = "#f0f2f6"
             
             for file in uploaded_files:
-                if file['name']:
-                    file_name = file['name']
-                    file_title = os.path.splitext(file_name)[0]  # Extract title from filename\
-                    file_title = clean_title(file_title)
+                file_name = file['name']
+                file_title = clean_title(file_name)
+
+                # Apply alternate row color
+                bg_color = "#e0e2f6" if bg_color == "#f0f2f6" else "#f0f2f6"
+                with st.container():
+                    st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">', unsafe_allow_html=True)
                     col1, col2, col3, col4 = st.columns([3, 3, 1, 1])
-                    # Apply alternate row color
+
                     with col1:
-                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_name}</div>', unsafe_allow_html=True)
+                        st.text(file_name)
                     with col2:
-                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_title}</div>', unsafe_allow_html=True)
+                        st.text(file_title)
 
-                        with col3:
-                            # Download button with emoji and tooltip
-                            with open(file['path'], 'rb') as f:
-                                st.download_button("⬇️", f.read(), file_name=file_name, mime="text/plain", help="Download File", key=f"download_{file_name}")
+                    with col3:
+                        # Download button
+                        with open(file['path'], 'rb') as f:
+                            st.download_button("⬇️", f.read(), file_name=file_name, mime="text/plain", key=f"download_{file_name}")
 
-                        with col4:
-                            # Delete button with emoji, tooltip, and confirmation
-                            if st.button("❌", help="Delete File", key=f"delete_{file_name}"):
-                                delete_file(file['path'])
-                                delete_hash_from_csv()
-                                st.rerun()  # Refresh the list to reflect the deletion
-                        
-                        # Toggle the background color for the next row
-                        bg_color = "#e0e2e6" if bg_color == "#f0f2f6" else "#f0f2f6"
+                    with col4:
+                        # Delete button
+                        if st.button("❌", key=f"delete_{file_name}"):
+                            delete_file(file['path'])
+                            delete_hash_from_csv()
+                            st.experimental_rerun()
 
-            # Render the file names along with the buttons
+                    st.markdown('</div>', unsafe_allow_html=True)
+
             for file in files:
-                if file['name']:
-                    file_name = file['name']
-                    file_title = os.path.splitext(file_name)[0]  # Extract title from filename\
-                    file_title = clean_title(file_title)
+                file_name = file['name']
+                file_title = clean_title(os.path.splitext(file_name)[0])
+
+                # Apply alternate row color
+                bg_color = "#e0e2f6" if bg_color == "#f0f2f6" else "#f0f2f6"
+                with st.container():
+                    st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">', unsafe_allow_html=True)
                     col1, col2, col3, col4 = st.columns([3, 3, 1, 1])
-                    # Apply alternate row color
+
                     with col1:
-                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_name}</div>', unsafe_allow_html=True)
+                        st.text(file_name)
                     with col2:
-                        st.markdown(f'<div style="background-color: {bg_color}; padding: 5px;">{file_title}</div>', unsafe_allow_html=True)
+                        st.text(file_title)
 
-                        with col3:
-                            # Download button with emoji and tooltip
-                            with open(file['path'], 'rb') as f:
-                                st.download_button("⬇️", f.read(), file_name=file_name, mime="text/plain", help="Download File", key=f"download_{file_name}")
+                    with col3:
+                        # Download button
+                        with open(file['path'], 'rb') as f:
+                            st.download_button("⬇️", f.read(), file_name=file_name, mime="text/plain", key=f"download_{file_name}")
 
-                        with col4:
-                            # Delete button with emoji, tooltip, and confirmation
-                            if st.button("❌", help="Delete File", key=f"delete_{file_name}"):
-                                delete_file(file['path'])
-                                delete_hash_from_csv()
-                                st.rerun()  # Refresh the list to reflect the deletion
-                        
-                        # Toggle the background color for the next row
-                        bg_color = "#e0e2e6" if bg_color == "#f0f2f6" else "#f0f2f6"
+                    with col4:
+                        # Delete button
+                        if st.button("❌", key=f"delete_{file_name}"):
+                            delete_file(file['path'])
+                            delete_hash_from_csv()
+                            st.experimental_rerun()
+
+                    st.markdown('</div>', unsafe_allow_html=True)
                     
     elif page == "File Preview":
         with st.container():
