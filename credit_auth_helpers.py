@@ -5,6 +5,8 @@ credits_db = {
     'john_doeasu': {'key': 'johns_keyasu', 'credits': 100}, 
     'yash_asu': {'key': 'yash_keyasu', 'credits': 200},
     'ad_asu': {'key': 'ad_keyasu', 'credits': 200},
+    'ds_asu': {'key': 'ds_keyasu', 'credits': 200},
+    'lw_asu': {'key': 'lw_keyasu', 'credits': 200},
 }
 
 def check_and_deduct_credits(name, key, duration):

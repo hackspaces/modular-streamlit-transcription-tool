@@ -67,7 +67,7 @@ def convert_txt_to_html(txt_file_path, html_file_path, title, css_file_path):
         footer = '''
         <footer>
         <hr>
-            <img src="https://assets.ea.asu.edu/ulc/images/asu_header%20logo%20small%20200%20px.png" alt="ASU logo"></img>
+            <img src="https://assets.ea.asu.edu/ulc/images/asu_header%20logo%20small%20200%20px.png" alt="ASU logo">
             <br>
             <p>This page was created by Universal Learner Courses. Visit <a href="https://ea.asu.edu/">ASU Universal Learner courses</a> to learn more.</p>
         </footer>'''
