@@ -1,8 +1,8 @@
 import streamlit as st
 import os
-from audio_video_helpers import process_audio_video_file, download_youtube_video
+from audio_video_helpers import process_audio_video_file, download_youtube_video, get_file_duration, get_file_metadata
 from credit_auth_helpers import check_and_deduct_credits, credits_db
-from file_helpers import get_file_duration, list_files, get_file_details, read_file_content, delete_file, list_css_files, read_text_file
+from file_helpers import list_files, get_file_details, read_file_content, delete_file, list_css_files, read_text_file
 import logging
 from config_const import PROCESSED_DIRECTORY, UPLOAD_DIRECTORY
 from werkzeug.utils import secure_filename
@@ -266,21 +266,21 @@ def transcription_functionality(name, key, credit_on, openai_api_key):
                 selected_css_option = st.selectbox("Select a CSS file", css_options, index=0, help="Select a CSS file to apply to the transcript.")  
     
     if st.button("Process Files", key="process_files"):
-        # Handle CSS file upload and path retrieval
-        if uploaded_css_file:
-            css_file_path = handle_file_upload(uploaded_css_file, name, key)
-            print(css_file_path)
-            st.toast(f"CSS file uploaded: {css_file_path}")
-        elif selected_css_option != "None":
-            css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", selected_css_option)
-            print(css_file_path)
-        elif css_file_path is not None and os.path.exists(css_file_path):
-            css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", "default.css")
-            print(css_file_path)
-        else:
-            css_file_path = "https://assets.ea.asu.edu/ulc/css/stylesheet.css"
-            
         with st.status("Processing files..."):
+            # Handle CSS file upload and path retrieval
+            if uploaded_css_file:
+                css_file_path = handle_file_upload(uploaded_css_file, name, key)
+                print(css_file_path)
+                st.toast(f"CSS file uploaded: {css_file_path}")
+            elif selected_css_option != "None":
+                css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", selected_css_option)
+                print(css_file_path)
+            elif css_file_path is not None and os.path.exists(css_file_path):
+                css_file_path = os.path.join(UPLOAD_DIRECTORY, f"{name}_{key}", "css", "default.css")
+                print(css_file_path)
+            else:
+                css_file_path = "https://assets.ea.asu.edu/ulc/css/stylesheet.css"
+                
             if not uploaded_files:
                 st.error("No files selected.")
             else:
@@ -379,7 +379,7 @@ def file_management(page, name, key):
                         if st.button("❌", key=f"delete_{file_name}"):
                             delete_file(file['path'])
                             delete_hash_from_csv()
-                            st.experimental_rerun()
+                            st.rerun()
 
                     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -408,7 +408,7 @@ def file_management(page, name, key):
                         if st.button("❌", key=f"delete_{file_name}"):
                             delete_file(file['path'])
                             delete_hash_from_csv()
-                            st.experimental_rerun()
+                            st.rerun()
 
                     st.markdown('</div>', unsafe_allow_html=True)
                     

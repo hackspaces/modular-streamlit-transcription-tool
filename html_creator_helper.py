@@ -41,7 +41,7 @@ def convert_txt_to_html(txt_file_path, html_file_path, title, css_file_path):
 
         # Split into paragraphs and wrap in <p> tags
         paragraphs = transcription.split('\n')
-        paragraphs = [f'<p style="width: 700px; text-indent: 50px;">{p.strip()}</p>' for p in paragraphs if p.strip() != '']
+        paragraphs = [f'<p>{p.strip()}</p>' for p in paragraphs if p.strip() != '']
         
         main_header_frame = f'''
         <head>
@@ -63,8 +63,8 @@ def convert_txt_to_html(txt_file_path, html_file_path, title, css_file_path):
 
         # HTML footer content
         footer = '''
-        <footer style="display: inline-block; align-content: inherit; float: left; width: 700px; margin: 10px;">
-            <img src="https://assets.ea.asu.edu/ulc/images/asu_header logo small 200 px.png" alt="ASU logo"></img>
+        <footer>
+            <img src="https://assets.ea.asu.edu/ulc/images/asu_header%20logo%20small%20200%20px.png" alt="ASU logo"></img>
             <p>This page was created by Universal Learner Courses. Visit <a href="https://ea.asu.edu/">ASU Universal Learner courses</a> to learn more.</p>
         </footer>'''
         
@@ -72,6 +72,7 @@ def convert_txt_to_html(txt_file_path, html_file_path, title, css_file_path):
 
         # Construct the HTML content
         html_content = f'''
+        <!DOCTYPE html>
         <html lang="en">
         {main_header_frame}
         {main_body_frame}

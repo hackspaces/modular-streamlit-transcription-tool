@@ -7,5 +7,3 @@ pandas
 Werkzeug
 tiktoken
 pytube
-ffmpeg-python
-ffprobe-python
