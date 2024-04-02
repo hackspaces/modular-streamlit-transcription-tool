@@ -1,7 +1,7 @@
 import streamlit as st
 import os
-from audio_video_helpers import process_audio_video_file, download_youtube_video, get_file_duration, get_file_metadata
-from credit_auth_helpers import check_and_deduct_credits, credits_db
+from audio_video_helpers import process_audio_video_file, download_youtube_video, get_file_duration
+from credit_auth_helpers import check_and_deduct_credits
 from file_helpers import list_files, get_file_details, read_file_content, delete_file, list_css_files, read_text_file
 import logging
 from config_const import PROCESSED_DIRECTORY, UPLOAD_DIRECTORY
@@ -10,7 +10,7 @@ from file_helpers import ensure_directory_exists, ensure_file_exists
 from file_hash_helpers import calculate_file_hash, write_hash_to_csv, read_hashes_from_csv, delete_hash_from_csv
 import shutil
 from api_helpers import call_whisper_api, reformat_transcript_with_gpt4
-from werkzeug.utils import secure_filename
+
 from html_creator_helper import convert_txt_to_html, clean_title
 import streamlit.components.v1 as components 
 import re
@@ -18,9 +18,7 @@ import re
 # Set up basic configuration for logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Define directories for uploads and processed files
-UPLOAD_DIRECTORY = "uploaded_files"
-PROCESSED_DIRECTORY = "processed_files"
+
 TRANSCRIPT_DIRECTORY= "pr"
 download_folder = os.path.join(UPLOAD_DIRECTORY, "youtube_videos")
 ensure_directory_exists(UPLOAD_DIRECTORY)
@@ -129,7 +127,7 @@ def process_audio_video_files(file_path, name, key, css_file_path, openai_api_ke
     
     if transcription_filename:
         # Save the formatted transcription in the user-specific processed folder
-        user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'transcripts')
+        user_processed_folder = os.path.join(PROCESSED_DIRECTORY, f"{name}_{key}", 'html')
         ensure_directory_exists(user_processed_folder)
 
         # Construct the full path for the processed file
@@ -286,7 +284,7 @@ def transcription_functionality(name, key, credit_on, openai_api_key):
             else:
                 for uploaded_file in uploaded_files:
                     if credit_on:
-                        file_duration = get_file_duration(file_path)
+                        file_duration = get_file_duration(uploaded_file)
                         # Check and potentially deduct credits
                         credits_ok, message = check_and_deduct_credits(name, key, file_duration)
                         if credits_ok:
